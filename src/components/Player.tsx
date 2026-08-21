@@ -25,11 +25,12 @@ export function Player() {
   if (!track) {
     return (
       <div className="h-20 border-t border-line bg-panel/90 px-4 flex items-center text-white/40 text-sm">
-        Select a track to start listening. Catalog is independent CC / public-domain / Audius / Jamendo — not Spotify or YouTube.
+        Pick Punjabi, Hindi, or English live radio — or an independent session.
       </div>
     );
   }
 
+  const live = !!track.live || !Number.isFinite(p.duration) || p.duration === 0;
   const remain = Math.max(0, (p.duration || 0) - p.currentTime);
 
   return (
@@ -87,17 +88,23 @@ export function Player() {
               </button>
             </div>
             <div className="hidden md:flex w-full max-w-xl items-center gap-2 text-[11px] text-white/50">
-              <span>{formatTime(p.currentTime)}</span>
-              <input
-                type="range"
-                min={0}
-                max={p.duration || 0}
-                value={p.currentTime}
-                onChange={(e) => p.seek(Number(e.target.value))}
-                className="flex-1"
-                aria-label="Seek"
-              />
-              <span>-{formatTime(remain)}</span>
+              {live ? (
+                <span className="text-ember font-semibold tracking-widest">LIVE RADIO</span>
+              ) : (
+                <>
+                  <span>{formatTime(p.currentTime)}</span>
+                  <input
+                    type="range"
+                    min={0}
+                    max={p.duration || 0}
+                    value={p.currentTime}
+                    onChange={(e) => p.seek(Number(e.target.value))}
+                    className="flex-1"
+                    aria-label="Seek"
+                  />
+                  <span>-{formatTime(remain)}</span>
+                </>
+              )}
             </div>
           </div>
 

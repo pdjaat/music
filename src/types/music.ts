@@ -10,7 +10,8 @@ export interface Track {
   artwork: string;
   duration: number;
   streamUrl: string;
-  source: "audius" | "jamendo" | "archive" | "local";
+  source: "audius" | "jamendo" | "archive" | "local" | "radio";
+  live?: boolean;
   license?: string;
   permalink?: string;
 }

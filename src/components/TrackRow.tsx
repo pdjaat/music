@@ -35,7 +35,10 @@ export function TrackRow({
         </span>
       </button>
       <div className="min-w-0">
-        <p className="truncate font-semibold">{track.title}</p>
+        <p className="truncate font-semibold">
+          {track.title}
+          {track.live && <span className="ml-2 text-[10px] uppercase tracking-wider text-ember">Live</span>}
+        </p>
         <p className="truncate text-sm text-white/50">{track.artist}</p>
       </div>
       <p className="hidden md:block truncate text-sm text-white/40">{track.album}</p>

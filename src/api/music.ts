@@ -1,6 +1,7 @@
 import type { Album, Artist, RemotePlaylist, SearchResults, Track } from "../types/music";
 import { placeholderArt } from "../utils/format";
 import { CATALOG, FEATURED_PLAYLISTS, searchCatalog } from "./catalog";
+import { FALLBACK_RADIO, searchRadioStations } from "./radio";
 
 const JAMENDO_ID = import.meta.env.VITE_JAMENDO_CLIENT_ID || "b6747d04";
 const APP = import.meta.env.VITE_AUDIUS_APP_NAME || "lumen-music";
@@ -105,27 +106,32 @@ export async function fetchFeaturedPlaylists(): Promise<RemotePlaylist[]> {
 
 export async function searchAll(q: string): Promise<SearchResults> {
   const query = q.trim();
-  const local = searchCatalog(query);
   if (!query) return { tracks: [], artists: [], albums: [], playlists: [] };
+
+  const local = searchCatalog(query);
+  const n = query.toLowerCase();
+  const radioHints = [...FALLBACK_RADIO.punjabi, ...FALLBACK_RADIO.hindi, ...FALLBACK_RADIO.english].filter(
+    (t) => t.title.toLowerCase().includes(n) || t.artist.toLowerCase().includes(n) || n.includes("punjabi") || n.includes("hindi") || n.includes("bollywood") || n.includes("english") || n.includes("bhangra")
+  );
+
+  let radio: Track[] = [];
+  try {
+    radio = await searchRadioStations(query);
+  } catch {
+    radio = radioHints;
+  }
 
   let remote: Track[] = [];
   try {
     const audius = await json<{ data: any[] }>(
-      `${audiusHost}/tracks/search?query=${encodeURIComponent(query)}&app_name=${APP}&limit=12`
+      `${audiusHost}/tracks/search?query=${encodeURIComponent(query)}&app_name=${APP}&limit=8`
     );
     if (audius.data?.length) remote = audius.data.map(mapAudiusTrack);
   } catch {
-    try {
-      const jamendo = await json<{ results: any[] }>(
-        `/api/jamendo/tracks/?client_id=${JAMENDO_ID}&format=json&limit=12&namesearch=${encodeURIComponent(query)}&include=musicinfo&audioformat=mp32`
-      );
-      if (jamendo.results?.length) remote = jamendo.results.map(mapJamendoTrack);
-    } catch {
-      /* local only */
-    }
+    /* ignore */
   }
 
-  const tracks = [...local, ...remote];
+  const tracks = [...radio, ...local, ...remote];
   return { tracks, artists: uniqueArtists(tracks), albums: uniqueAlbums(tracks), playlists: [] };
 }
 

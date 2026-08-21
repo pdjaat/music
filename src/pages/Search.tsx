@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { searchCatalog } from "../api/catalog";
 import { searchAll } from "../api/music";
+import { FALLBACK_RADIO } from "../api/radio";
 import { CoverCard } from "../components/CoverCard";
 import { EmptyState } from "../components/EmptyState";
 import { TrackRow } from "../components/TrackRow";
@@ -25,7 +26,18 @@ export function Search() {
       setResults(null);
       return;
     }
-    setResults(pack(searchCatalog(q)));
+    const n = q.toLowerCase();
+    const radio =
+      n.includes("punjabi") || n.includes("bhangra")
+        ? FALLBACK_RADIO.punjabi
+        : n.includes("hindi") || n.includes("bolly")
+          ? FALLBACK_RADIO.hindi
+          : n.includes("english") || n === "pop"
+            ? FALLBACK_RADIO.english
+            : [...FALLBACK_RADIO.punjabi, ...FALLBACK_RADIO.hindi, ...FALLBACK_RADIO.english].filter((t) =>
+                t.title.toLowerCase().includes(n)
+              );
+    setResults(pack([...radio, ...searchCatalog(q)]));
     let live = true;
     const t = setTimeout(() => {
       searchAll(q)
@@ -46,14 +58,14 @@ export function Search() {
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Try aurora, kiln, tidal, pulse…"
+        placeholder="punjabi, bollywood, hindi, english, bhangra…"
         className="mt-4 w-full max-w-xl rounded-2xl bg-card border border-line px-4 py-3"
         aria-label="Search catalog"
         autoFocus
       />
       {!q && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {["aurora", "northline", "pulse", "saffron", "tidal", "kiln", "harbour"].map((s) => (
+          {["punjabi", "bollywood", "hindi", "bhangra", "english", "pop"].map((s) => (
             <button key={s} onClick={() => setQ(s)} className="rounded-full bg-white/10 px-3 py-1 text-sm">
               {s}
             </button>
@@ -62,7 +74,7 @@ export function Search() {
       )}
       {results && results.tracks.length === 0 && (
         <div className="mt-6">
-          <EmptyState title="No matches" body="Try aurora, kiln, tidal, or pulse." />
+          <EmptyState title="No matches" body="Try punjabi, bollywood, hindi, or english for live radio." />
         </div>
       )}
       {results && results.tracks.length > 0 && (

@@ -176,6 +176,6 @@ if (audioEl) {
     } else next();
   });
   audioEl.addEventListener("error", () => {
-    usePlayer.getState().setError("Music service is temporarily unavailable. Skipping or try another track.");
+    usePlayer.getState().setError("This station stream failed. Try another station — live radio URLs vary by region.");
   });
 }
