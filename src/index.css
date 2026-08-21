@@ -1,0 +1,33 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  font-family: Manrope, system-ui, sans-serif;
+  background: radial-gradient(1200px 600px at 10% -10%, #1a1430 0%, #07080d 45%);
+  color: #f4f6fb;
+}
+
+*:focus-visible {
+  outline: 2px solid #7c6cff;
+  outline-offset: 2px;
+}
+
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: #2a3144;
+  border-radius: 99px;
+}
+
+input[type="range"] {
+  accent-color: #ff6b4a;
+}
