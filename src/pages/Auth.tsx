@@ -1,8 +1,10 @@
 import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../store/auth";
 
 export function Auth() {
   const { login, signup, error } = useAuth();
+  const nav = useNavigate();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -15,6 +17,7 @@ export function Auth() {
     try {
       if (mode === "login") await login(email, password);
       else await signup(email, password, displayName || email.split("@")[0]);
+      nav("/");
     } catch {
       /* store sets error */
     } finally {
@@ -67,6 +70,9 @@ export function Auth() {
         <button type="button" className="mt-4 text-sm text-white/50" onClick={() => setMode(mode === "login" ? "signup" : "login")}>
           {mode === "login" ? "Need an account? Sign up" : "Have an account? Log in"}
         </button>
+        <Link to="/" className="mt-6 text-sm text-ember">
+          Continue without an account
+        </Link>
       </form>
     </div>
   );

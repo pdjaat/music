@@ -1,46 +1,44 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
+import { searchCatalog } from "../api/catalog";
 import { searchAll } from "../api/music";
 import { CoverCard } from "../components/CoverCard";
-import { EmptyState, ErrorState } from "../components/EmptyState";
-import { SkeletonRow } from "../components/Skeleton";
+import { EmptyState } from "../components/EmptyState";
 import { TrackRow } from "../components/TrackRow";
 import { usePlayer } from "../store/player";
 import type { SearchResults } from "../types/music";
 
+function pack(tracks: ReturnType<typeof searchCatalog>): SearchResults {
+  const artists = Array.from(new Map(tracks.map((t) => [t.artist, { id: t.artist, name: t.artist, artwork: t.artwork, source: t.source }])).values());
+  const albums = Array.from(
+    new Map(tracks.map((t) => [t.album, { id: t.album || t.id, title: t.album || t.title, artist: t.artist, artwork: t.artwork, source: t.source }])).values()
+  );
+  return { tracks, artists, albums, playlists: [] };
+}
+
 export function Search() {
   const [q, setQ] = useState("");
-  const [debounced, setDebounced] = useState("");
   const [results, setResults] = useState<SearchResults | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(false);
   const playTrack = usePlayer((s) => s.playTrack);
 
   useEffect(() => {
-    const t = setTimeout(() => setDebounced(q), 350);
-    return () => clearTimeout(t);
-  }, [q]);
-
-  useEffect(() => {
-    if (!debounced.trim()) {
+    if (!q.trim()) {
       setResults(null);
       return;
     }
+    setResults(pack(searchCatalog(q)));
     let live = true;
-    setLoading(true);
-    setError(false);
-    searchAll(debounced)
-      .then((r) => live && setResults(r))
-      .catch(() => live && setError(true))
-      .finally(() => live && setLoading(false));
+    const t = setTimeout(() => {
+      searchAll(q)
+        .then((r) => {
+          if (live && r.tracks.length) setResults(r);
+        })
+        .catch(() => undefined);
+    }, 200);
     return () => {
       live = false;
+      clearTimeout(t);
     };
-  }, [debounced]);
-
-  const suggestions = useMemo(
-    () => ["bach", "electronic", "jazz", "lofi", "piano"].filter((s) => s.includes(q.toLowerCase()) || !q),
-    [q]
-  );
+  }, [q]);
 
   return (
     <div className="px-6 py-8">
@@ -48,24 +46,23 @@ export function Search() {
       <input
         value={q}
         onChange={(e) => setQ(e.target.value)}
-        placeholder="Songs, artists, albums…"
+        placeholder="Try aurora, kiln, tidal, pulse…"
         className="mt-4 w-full max-w-xl rounded-2xl bg-card border border-line px-4 py-3"
         aria-label="Search catalog"
+        autoFocus
       />
       {!q && (
         <div className="mt-4 flex flex-wrap gap-2">
-          {suggestions.map((s) => (
+          {["aurora", "northline", "pulse", "saffron", "tidal", "kiln", "harbour"].map((s) => (
             <button key={s} onClick={() => setQ(s)} className="rounded-full bg-white/10 px-3 py-1 text-sm">
               {s}
             </button>
           ))}
         </div>
       )}
-      {loading && <div className="mt-6"><SkeletonRow /><SkeletonRow /></div>}
-      {error && <div className="mt-6"><ErrorState onRetry={() => setDebounced(q + " ")} /></div>}
-      {results && !loading && results.tracks.length === 0 && (
+      {results && results.tracks.length === 0 && (
         <div className="mt-6">
-          <EmptyState title="No matches" body="Try a different spelling or a more general query." />
+          <EmptyState title="No matches" body="Try aurora, kiln, tidal, or pulse." />
         </div>
       )}
       {results && results.tracks.length > 0 && (
@@ -76,22 +73,31 @@ export function Search() {
               <TrackRow key={t.id} track={t} queue={results.tracks} index={i} />
             ))}
           </section>
-          <section>
-            <h2 className="font-display text-xl mb-3">Artists</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {results.artists.map((a) => (
-                <CoverCard key={a.id} title={a.name} artwork={a.artwork} onPlay={() => results.tracks[0] && playTrack(results.tracks[0], results.tracks)} />
-              ))}
-            </div>
-          </section>
-          <section>
-            <h2 className="font-display text-xl mb-3">Albums</h2>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {results.albums.map((a) => (
-                <CoverCard key={a.id} title={a.title} subtitle={a.artist} artwork={a.artwork} />
-              ))}
-            </div>
-          </section>
+          {results.artists.length > 0 && (
+            <section>
+              <h2 className="font-display text-xl mb-3">Artists</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {results.artists.map((a) => (
+                  <CoverCard
+                    key={a.id}
+                    title={a.name}
+                    artwork={a.artwork}
+                    onPlay={() => results.tracks[0] && playTrack(results.tracks[0], results.tracks)}
+                  />
+                ))}
+              </div>
+            </section>
+          )}
+          {results.albums.length > 0 && (
+            <section>
+              <h2 className="font-display text-xl mb-3">Albums</h2>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {results.albums.map((a) => (
+                  <CoverCard key={a.id} title={a.title} subtitle={a.artist} artwork={a.artwork} />
+                ))}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </div>

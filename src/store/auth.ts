@@ -23,7 +23,10 @@ export const useAuth = create<AuthState>((set, get) => ({
   error: null,
   hydrate: () => {
     const session = loadJSON<User | null>("session", null);
-    set({ user: session, ready: true });
+    set({
+      user: session ?? { id: "guest", email: "guest@lumen.local", displayName: "Guest" },
+      ready: true,
+    });
   },
   signup: async (email, password, displayName) => {
     const users = loadJSON<StoredUser[]>("users", []);
@@ -57,7 +60,7 @@ export const useAuth = create<AuthState>((set, get) => ({
   },
   logout: () => {
     saveJSON("session", null);
-    set({ user: null });
+    set({ user: { id: "guest", email: "guest@lumen.local", displayName: "Guest" } });
   },
   updateProfile: (displayName) => {
     const user = get().user;

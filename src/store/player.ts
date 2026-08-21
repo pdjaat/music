@@ -40,8 +40,7 @@ interface PlayerState {
 export const audioEl = typeof Audio !== "undefined" ? new Audio() : (null as unknown as HTMLAudioElement);
 
 if (audioEl) {
-  audioEl.preload = "metadata";
-  audioEl.crossOrigin = "anonymous";
+  audioEl.preload = "auto";
 }
 
 export const usePlayer = create<PlayerState>((set, get) => ({
@@ -156,6 +155,7 @@ function load(track: Track) {
     return;
   }
   audioEl.src = track.streamUrl;
+  audioEl.load();
   audioEl.volume = usePlayer.getState().volume;
   audioEl.play().catch(() => {
     usePlayer.getState().setError("Could not start playback. The source may be unavailable.");

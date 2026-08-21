@@ -3,4 +3,5 @@ dist
 .env
 .env.local
 .DS_Store
+public/audio/*.wav
 tsconfig.tsbuildinfo

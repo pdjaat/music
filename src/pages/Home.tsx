@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { CATALOG, FEATURED_PLAYLISTS } from "../api/catalog";
 import { fetchFeaturedPlaylists, fetchTrending } from "../api/music";
 import { CoverCard } from "../components/CoverCard";
 import { EmptyState, ErrorState } from "../components/EmptyState";
@@ -13,22 +14,20 @@ export function Home() {
   const { user } = useAuth();
   const recent = useLibrary((s) => s.recentlyPlayed);
   const playTrack = usePlayer((s) => s.playTrack);
-  const [trending, setTrending] = useState<Track[]>([]);
-  const [playlists, setPlaylists] = useState<RemotePlaylist[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [trending, setTrending] = useState<Track[]>(CATALOG);
+  const [playlists, setPlaylists] = useState<RemotePlaylist[]>(FEATURED_PLAYLISTS);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
 
   const load = async () => {
-    setLoading(true);
     setError(false);
     try {
       const [t, p] = await Promise.all([fetchTrending(), fetchFeaturedPlaylists()]);
-      setTrending(t);
-      setPlaylists(p);
+      if (t.length) setTrending(t);
+      if (p.length) setPlaylists(p);
     } catch {
-      setError(true);
-    } finally {
-      setLoading(false);
+      setError(false);
+      setTrending(CATALOG);
     }
   };
 

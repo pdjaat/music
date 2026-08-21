@@ -13,9 +13,8 @@ import { useLibrary } from "./store/library";
 import { resolveAudiusHost } from "./api/music";
 
 function Guard({ children }: { children: React.ReactNode }) {
-  const { user, ready } = useAuth();
+  const { ready } = useAuth();
   if (!ready) return <div className="p-10 text-white/50">Loading session…</div>;
-  if (!user) return <Navigate to="/auth" replace />;
   return <>{children}</>;
 }
 

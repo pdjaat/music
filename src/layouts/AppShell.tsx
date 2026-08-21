@@ -1,5 +1,5 @@
 import { Heart, Home, Library, ListMusic, LogOut, Search, Settings } from "lucide-react";
-import { NavLink, Outlet } from "react-router-dom";
+import { Link, NavLink, Outlet } from "react-router-dom";
 import { Player } from "../components/Player";
 import { ToastHost } from "../components/Toast";
 import { useAuth } from "../store/auth";
@@ -40,9 +40,15 @@ export function AppShell() {
           </nav>
           <div className="mt-auto text-sm text-white/50">
             <p className="truncate">{user?.displayName}</p>
-            <button onClick={logout} className="mt-2 flex items-center gap-2 text-white/40 hover:text-white">
-              <LogOut size={14} /> Log out
-            </button>
+            {user?.id !== "guest" ? (
+              <button onClick={logout} className="mt-2 flex items-center gap-2 text-white/40 hover:text-white">
+                <LogOut size={14} /> Log out
+              </button>
+            ) : (
+              <Link to="/auth" className="mt-2 block text-ember text-sm">
+                Sign in
+              </Link>
+            )}
           </div>
         </aside>
         <main className="flex-1 overflow-y-auto scrollbar-thin pb-4">

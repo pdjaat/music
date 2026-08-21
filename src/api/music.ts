@@ -1,12 +1,13 @@
 import type { Album, Artist, RemotePlaylist, SearchResults, Track } from "../types/music";
 import { placeholderArt } from "../utils/format";
+import { CATALOG, FEATURED_PLAYLISTS, searchCatalog } from "./catalog";
 
 const JAMENDO_ID = import.meta.env.VITE_JAMENDO_CLIENT_ID || "b6747d04";
 const APP = import.meta.env.VITE_AUDIUS_APP_NAME || "lumen-music";
 
 let audiusHost = "/api/audius";
 
-async function json<T>(url: string, timeout = 12000): Promise<T> {
+async function json<T>(url: string, timeout = 2500): Promise<T> {
   const ctrl = new AbortController();
   const t = setTimeout(() => ctrl.abort(), timeout);
   try {
@@ -20,7 +21,7 @@ async function json<T>(url: string, timeout = 12000): Promise<T> {
 
 export async function resolveAudiusHost() {
   try {
-    const hosts = await json<string[]>("https://api.audius.co");
+    const hosts = await json<string[]>("https://api.audius.co", 2000);
     if (hosts?.[0]) audiusHost = `${hosts[0].replace(/\/$/, "")}/v1`;
   } catch {
     audiusHost = "/api/audius";
@@ -32,8 +33,7 @@ function art(url?: string | null, seed = "x") {
 }
 
 function mapAudiusTrack(t: any): Track {
-  const artwork =
-    t.artwork?.["480x480"] || t.artwork?.["150x150"] || placeholderArt(t.title);
+  const artwork = t.artwork?.["480x480"] || t.artwork?.["150x150"] || placeholderArt(t.title);
   return {
     id: `audius:${t.id}`,
     title: t.title,
@@ -64,157 +64,69 @@ function mapJamendoTrack(t: any): Track {
   };
 }
 
-const LOCAL_FALLBACK: Track[] = [
-  {
-    id: "local:ia-bwv846",
-    title: "Prelude in C Major, BWV 846",
-    artist: "Johann Sebastian Bach (public domain)",
-    album: "Well-Tempered Clavier",
-    artwork: placeholderArt("bach"),
-    duration: 140,
-    streamUrl: "https://archive.org/download/jsbachwelltemperedclavierbook1/01.Prelude_and_Fugue_No.1_in_C_major_BWV_846.mp3",
-    source: "archive",
-    license: "Public Domain",
-  },
-  {
-    id: "local:ia-moonlight",
-    title: "Moonlight Sonata (1st movement)",
-    artist: "Ludwig van Beethoven (public domain)",
-    album: "Piano Sonata No. 14",
-    artwork: placeholderArt("beethoven"),
-    duration: 360,
-    streamUrl: "https://archive.org/download/MoonlightSonata_750/Beethoven-MoonlightSonata.mp3",
-    source: "archive",
-    license: "Public Domain",
-  },
-  {
-    id: "local:ia-canon",
-    title: "Canon in D",
-    artist: "Johann Pachelbel (public domain)",
-    album: "Baroque Favorites",
-    artwork: placeholderArt("pachelbel"),
-    duration: 300,
-    streamUrl: "https://archive.org/download/PachelbelCanoninD/Canon_in_D.mp3",
-    source: "archive",
-    license: "Public Domain",
-  },
-  {
-    id: "local:ia-four-seasons",
-    title: "Spring — Allegro",
-    artist: "Antonio Vivaldi (public domain)",
-    album: "The Four Seasons",
-    artwork: placeholderArt("vivaldi"),
-    duration: 200,
-    streamUrl: "https://archive.org/download/TheFourSeasonsVivaldi/01.SpringAllegro.mp3",
-    source: "archive",
-    license: "Public Domain",
-  },
-  {
-    id: "local:jamendo-demo",
-    title: "Independent Mix (Jamendo catalog)",
-    artist: "Jamendo Artists",
-    album: "Open Catalog",
-    artwork: placeholderArt("jamendo"),
-    duration: 180,
-    streamUrl: `https://api.jamendo.com/v3.0/tracks/file/?client_id=${JAMENDO_ID}&id=1321392&action=stream`,
-    source: "jamendo",
-    license: "Creative Commons",
-  },
-];
-
 export async function fetchTrending(): Promise<Track[]> {
-  const errors: string[] = [];
   try {
-    const data = await json<{ data: any[] }>(
-      `${audiusHost}/tracks/trending?app_name=${APP}&limit=20`
-    );
-    if (data.data?.length) return data.data.map(mapAudiusTrack);
-  } catch (e) {
-    errors.push(String(e));
+    const data = await json<{ data: any[] }>(`${audiusHost}/tracks/trending?app_name=${APP}&limit=20`);
+    if (data.data?.length) return [...CATALOG, ...data.data.map(mapAudiusTrack)];
+  } catch {
+    /* local catalog is enough */
   }
   try {
     const data = await json<{ results: any[] }>(
-      `/api/jamendo/tracks/?client_id=${JAMENDO_ID}&format=jsonpretty&limit=20&include=musicinfo&audioformat=mp32&order=popularity_total`
+      `/api/jamendo/tracks/?client_id=${JAMENDO_ID}&format=json&limit=12&include=musicinfo&audioformat=mp32&order=popularity_total`
     );
-    if (data.results?.length) return data.results.map(mapJamendoTrack);
-  } catch (e) {
-    errors.push(String(e));
+    if (data.results?.length) return [...CATALOG, ...data.results.map(mapJamendoTrack)];
+  } catch {
+    /* ignore */
   }
-  try {
-    const data = await json<any>(
-      `/api/archive/advancedsearch.php?q=collection%3Aopensource_audio+AND+mediatype%3Aaudio&fl[]=identifier&fl[]=title&fl[]=creator&rows=12&page=1&output=json`
-    );
-    const docs = data.response?.docs ?? [];
-    if (docs.length) {
-      return docs.map((d: any) => ({
-        id: `archive:${d.identifier}`,
-        title: d.title || d.identifier,
-        artist: d.creator || "Internet Archive",
-        artwork: `https://archive.org/services/img/${d.identifier}`,
-        duration: 0,
-        streamUrl: `https://archive.org/download/${d.identifier}/${d.identifier}.mp3`,
-        source: "archive" as const,
-        license: "See item page",
-      }));
-    }
-  } catch (e) {
-    errors.push(String(e));
-  }
-  console.warn("Using local public-domain fallback catalog", errors);
-  return LOCAL_FALLBACK;
+  return CATALOG;
 }
 
 export async function fetchFeaturedPlaylists(): Promise<RemotePlaylist[]> {
   try {
-    const data = await json<{ data: any[] }>(
-      `${audiusHost}/playlists/trending?app_name=${APP}&limit=12`
-    );
-    return (data.data || []).map((p) => ({
-      id: `audius-pl:${p.id}`,
-      title: p.playlist_name,
-      artwork: art(p.artwork?.["480x480"], p.playlist_name),
-      description: p.description,
-      source: "audius" as const,
-    }));
+    const data = await json<{ data: any[] }>(`${audiusHost}/playlists/trending?app_name=${APP}&limit=8`);
+    if (data.data?.length) {
+      return [
+        ...FEATURED_PLAYLISTS,
+        ...data.data.map((p) => ({
+          id: `audius-pl:${p.id}`,
+          title: p.playlist_name,
+          artwork: art(p.artwork?.["480x480"], p.playlist_name),
+          description: p.description,
+          source: "audius" as const,
+        })),
+      ];
+    }
   } catch {
-    return [
-      { id: "local-pl:classics", title: "Public Domain Classics", artwork: placeholderArt("classics"), source: "local" },
-      { id: "local-pl:indie", title: "Independent Voices", artwork: placeholderArt("indie"), source: "jamendo" },
-      { id: "local-pl:archive", title: "Archive Live", artwork: placeholderArt("live"), source: "archive" },
-    ];
+    /* ignore */
   }
+  return FEATURED_PLAYLISTS;
 }
 
 export async function searchAll(q: string): Promise<SearchResults> {
   const query = q.trim();
+  const local = searchCatalog(query);
   if (!query) return { tracks: [], artists: [], albums: [], playlists: [] };
 
-  const empty: SearchResults = { tracks: [], artists: [], albums: [], playlists: [] };
-
-  const [audius, jamendo] = await Promise.allSettled([
-    json<{ data: any[] }>(`${audiusHost}/tracks/search?query=${encodeURIComponent(query)}&app_name=${APP}&limit=20`),
-    json<{ results: any[] }>(
-      `/api/jamendo/tracks/?client_id=${JAMENDO_ID}&format=json&limit=20&namesearch=${encodeURIComponent(query)}&include=musicinfo&audioformat=mp32`
-    ),
-  ]);
-
-  if (audius.status === "fulfilled" && audius.value.data?.length) {
-    const tracks = audius.value.data.map(mapAudiusTrack);
-    const artists = uniqueArtists(tracks);
-    const albums = uniqueAlbums(tracks);
-    return { tracks, artists, albums, playlists: [] };
-  }
-  if (jamendo.status === "fulfilled" && jamendo.value.results?.length) {
-    const tracks = jamendo.value.results.map(mapJamendoTrack);
-    return { tracks, artists: uniqueArtists(tracks), albums: uniqueAlbums(tracks), playlists: [] };
+  let remote: Track[] = [];
+  try {
+    const audius = await json<{ data: any[] }>(
+      `${audiusHost}/tracks/search?query=${encodeURIComponent(query)}&app_name=${APP}&limit=12`
+    );
+    if (audius.data?.length) remote = audius.data.map(mapAudiusTrack);
+  } catch {
+    try {
+      const jamendo = await json<{ results: any[] }>(
+        `/api/jamendo/tracks/?client_id=${JAMENDO_ID}&format=json&limit=12&namesearch=${encodeURIComponent(query)}&include=musicinfo&audioformat=mp32`
+      );
+      if (jamendo.results?.length) remote = jamendo.results.map(mapJamendoTrack);
+    } catch {
+      /* local only */
+    }
   }
 
-  const local = LOCAL_FALLBACK.filter(
-    (t) =>
-      t.title.toLowerCase().includes(query.toLowerCase()) ||
-      t.artist.toLowerCase().includes(query.toLowerCase())
-  );
-  return { ...empty, tracks: local, artists: uniqueArtists(local), albums: uniqueAlbums(local) };
+  const tracks = [...local, ...remote];
+  return { tracks, artists: uniqueArtists(tracks), albums: uniqueAlbums(tracks), playlists: [] };
 }
 
 function uniqueArtists(tracks: Track[]): Artist[] {
@@ -236,4 +148,4 @@ function uniqueAlbums(tracks: Track[]): Album[] {
   return [...map.values()];
 }
 
-export { LOCAL_FALLBACK };
+export { CATALOG as LOCAL_FALLBACK };
