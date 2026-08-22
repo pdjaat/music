@@ -1,0 +1,111 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+  html {
+    -webkit-tap-highlight-color: transparent;
+  }
+  body {
+    @apply bg-ink-950 text-zinc-100 antialiased;
+    font-feature-settings: 'ss01';
+  }
+  html.light body {
+    @apply bg-[#f4f5f7] text-zinc-900;
+  }
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply rounded-full bg-ink-600/70;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-ink-600;
+  }
+  html.light ::-webkit-scrollbar-thumb {
+    @apply bg-zinc-300;
+  }
+  ::-webkit-scrollbar-track {
+    background: transparent;
+  }
+}
+
+@layer components {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .skeleton {
+    @apply animate-[shimmer_1.4s_linear_infinite];
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.10) 37%, rgba(255,255,255,0.04) 63%);
+    background-size: 800px 100%;
+  }
+  html.light .skeleton {
+    background: linear-gradient(90deg, rgba(0,0,0,0.05) 25%, rgba(0,0,0,0.10) 37%, rgba(0,0,0,0.05) 63%);
+    background-size: 800px 100%;
+  }
+  .glass {
+    @apply bg-ink-800/70 backdrop-blur-xl border border-white/5;
+  }
+  html.light .glass {
+    @apply bg-white/80 border-black/5;
+  }
+  .text-gradient {
+    background: linear-gradient(100deg, #ffb347, #ff8a00 30%, #ff2e63 80%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .btn-icon {
+    @apply rounded-full p-2 text-zinc-400 transition hover:text-white hover:bg-white/10 active:scale-95;
+  }
+  html.light .btn-icon {
+    @apply text-zinc-500 hover:text-zinc-900 hover:bg-black/5;
+  }
+  .card-hover {
+    @apply transition duration-200 hover:bg-white/[0.06] hover:shadow-card;
+  }
+}
+
+/* Equalizer bars */
+.eq-bar {
+  @apply inline-block w-[3px] rounded-full bg-accent-400;
+  animation: eq 0.9s ease-in-out infinite;
+}
+
+/* Range input styling */
+input[type='range'].slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  border-radius: 9999px;
+  background: rgba(255,255,255,0.18);
+  outline: none;
+}
+input[type='range'].slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+input[type='range'].slider:hover::-webkit-slider-thumb {
+  opacity: 1;
+}
+html.light input[type='range'].slider {
+  background: rgba(0,0,0,0.18);
+}
+html.light input[type='range'].slider::-webkit-slider-thumb {
+  background: #111;
+}
